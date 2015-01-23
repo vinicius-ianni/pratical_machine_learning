@@ -70,10 +70,8 @@ training <- training[,-c(1:7)]
 #remaining variables (this model took hours to run on my machine, so I saved 
 #the model once it was completed so I do not need to rerun the exact model in 
 #the future).
-if (!file.exists("rfmodel.RDS")) {
-  model <- train(classe~., method="rf", data=training)
-  saveRDS(model, "rfmodel.RDS")
-}
+model <- train(classe~., method="rf", data=training)
+saveRDS(model, "rfmodel.RDS")
 model <- readRDS("rfmodel.RDS")
 
 ##Model Evaluation
