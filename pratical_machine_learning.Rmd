@@ -1,22 +1,25 @@
-#Synopsis: Machine learning is a scientific discipline that explores the 
-#construction and study of algorithms that can learn from data.
-#Such algorithms operate by building a model based on inputs[2]:2 and using that 
-#to make predictions or decisions, rather than following only explicitly 
-#programmed instructions.
+#Synopsis:
+Machine learning is a scientific discipline that explores the 
+construction and study of algorithms that can learn from data.
+Such algorithms operate by building a model based on inputs[2]:2 and using that 
+to make predictions or decisions, rather than following only explicitly 
+programmed instructions.
 
-#The Data: In the study referenced above, the data was obtained by attaching 
-#sensors (inertial measurement units) to both study participants, and weights, 
-#to measure the motion as exercises were performed. Each participant was 
-#instructed to perform an exercise five different ways (one “correct” way and 
-#differnt “incorrect” ways).
+#The Data: 
+In the study referenced above, the data was obtained by attaching 
+sensors (inertial measurement units) to both study participants, and weights, 
+to measure the motion as exercises were performed. Each participant was 
+instructed to perform an exercise five different ways (one “correct” way and 
+differnt “incorrect” ways).
 
-#In the data set, each record consists of measuremnts obtained per 
-#person/exercise form in short span of time (0.5 ~ 2.5 seconds).
+In the data set, each record consists of measuremnts obtained per 
+person/exercise form in short span of time (0.5 ~ 2.5 seconds).
 
-##Data Processing
-#The first step is to load in the training data and subset it into a 
-#training and a testing set. 
+#Data Processing
+The first step is to load in the training data and subset it into a 
+training and a testing set. 
 
+```
 if (!file.exists("pml-testing.csv")){
   download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
                 "pml-testing.csv", method="curl")
@@ -25,19 +28,22 @@ if (!file.exists("pml-training.csv")){
   download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
                 "pml-training.csv", method="curl")
 }
+```
+Now, we import the data and take an initial look at it:
 
-#Now, we import the data and take an initial look at it:
-
+```
 data = read.csv("pml-training.csv", na.strings = c("NA", ""))
 dim(data)
 summary(data$classe)
+```
 
-#There are 19622 records with 160 variables. The variable we will be 
-#predicting on is classe, and the data is split up between the five classes.
+There are 19622 records with 160 variables. The variable we will be 
+predicting on is classe, and the data is split up between the five classes.
 
-#We will split the data into a training set to train the model and a testing 
-#set to test the performanace of the model:
+We will split the data into a training set to train the model and a testing 
+set to test the performanace of the model:
 
+```
 set.seed(0)
 library(caret)
 library(randomForest)
@@ -45,44 +51,58 @@ inTrain <- createDataPartition(y=data$classe, p=0.7, list=FALSE)
 training <- data[inTrain,]
 testing <- data[-inTrain,]
 dim(training)
+```
 
-#There are currently 160 variables available to use for training the model. 
-#verifying if that number can be reduced removing variables with missing values
+There are currently 160 variables available to use for training the model. 
+verifying if that number can be reduced removing variables with missing values
 
+```
 na_test <- sapply(training, function(x) {sum(is.na(x))})
 table(na_test)
+```
 
-#There are 100 columns with almost all missing values. 
-#We'll remove these columns from our training data and take a look at the 
-#remaining columns.
+There are 100 columns with almost all missing values. 
+We'll remove these columns from our training data and take a look at the 
+remaining columns.
 
+```
 bad_columns <- names(na_test[na_test==13457])
 training <- training[, !names(training) %in% bad_columns]
 str(training)
+```
 
-#In order to look only at the variables related to movement, we can also 
-#remove the first seven variables with have to do with the sequence and subject.
+In order to look only at the variables related to movement, we can also 
+remove the first seven variables with have to do with the sequence and subject.
 
+```
 training <- training[,-c(1:7)]
+```
 
-##Model Builinding
-#Now we will create a model to predict the classe using a random forest on the 
-#remaining variables (this model took hours to run on my machine, so I saved 
-#the model once it was completed so I do not need to rerun the exact model in 
-#the future).
-model <- train(classe~., method="rf", data=training)
-saveRDS(model, "rfmodel.RDS")
+#Model Builinding
+Now we will create a model to predict the classe using a random forest on the 
+remaining variables (this model took hours to run on my machine, so I saved 
+the model once it was completed so I do not need to rerun the exact model in 
+the future).
+
+```
+if (!file.exists("rfmodel.RDS")) {
+  model <- train(classe~., method="rf", data=training)
+  saveRDS(model, "rfmodel.RDS")
+}
 model <- readRDS("rfmodel.RDS")
+```
 
-##Model Evaluation
-#Once we have trained the model on the training data, we can test the accuracy 
-#using the testing data we left out. Let’s define accuracy as the percentage of 
-#correct predictions from the model (comparing the predictions from the model 
-#to the actual classe variable in the testing data).
+#Model Evaluation
+Once we have trained the model on the training data, we can test the accuracy 
+using the testing data we left out. Let’s define accuracy as the percentage of 
+correct predictions from the model (comparing the predictions from the model 
+to the actual classe variable in the testing data).
 
+```
 mean(predict(model, testing) == testing$classe) * 100
+```
 
-#The model is 99.74% accurate on the training data.
+The model is 99.74% accurate on the training data.
 
-##Conclusion
-#The random forest algorithm appears to perform very well for predicting activities from accelerometers measurements.
+#Conclusion
+The random forest algorithm appears to perform very well for predicting activities from accelerometers measurements.
