@@ -1,0 +1,77 @@
+---
+title: "Pratical Machine Learning Conclusion Project"
+author: "Vincius Ianni"
+date: "23-05-2015"
+output: html_document
+---
+
+##Description
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+##Data
+
+After downloading training and testing data wich can be found here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+Loading data:
+
+```{r}
+train <- read.csv("pml-training.csv")
+test <- read.csv("pml-testing.csv")
+```
+
+Lets sanitize removing the values in some columns like "#DIV/0!" or values irrelevant and non-numeric.
+
+```{r}
+sanit <- unique(unlist(lapply(train, function(x) which(x == "#DIV/0!"))))
+train <- train[-sanit,]
+train <- train[,c(-1,-2,-3,-4,-5,-6)]
+train <- modifyList(train, lapply(train[,sapply(train[,-154], is.factor)], as.numeric))
+train <- train[,sapply(train, function(x)!all(is.na(x)))]
+train <- train[,sapply(train, function(x)!all(x==1))]
+```
+
+
+##Model Training
+
+Now, divided this data in 2 groups:
+
+```{r}
+trainer <- createDataPartition(train$classe, p = 0.7, list = FALSE)
+training <- train[trainer,]
+testing <- train[-trainer,]
+```
+
+And use it to cross-validation:
+
+```{r}
+ctrltiny <- trainControl(method = "repeatedcv",repeats = 4, number = 2, allowParallel=TRUE)
+```
+
+Now, training a model using the k-nearest neighbors algorithm and pre-processing the data using PCA.
+Using KNN method because is simple, fast and give us good rates of prediction.
+
+```{r}
+knnmd <- train(classe ~., data=training, method='knn', trControl = ctrltiny, preProcess=c("pca"))
+plot(knnmd)
+confus <- confusionMatrix(predict(knnmd, newdata = training), training$classe)
+print(confus$table)
+print(confus$overall)
+confos <- confusionMatrix(predict(knnmd, newdata = testing), testing$classe)
+print(confos)
+```
+
+
+##Conclusion
+
+Now, validating this model:
+
+```{r}
+prev <- predict(knnmd, newdata = test)
+print(prev)
+```
+
+As we can see, the results is satisfatory enough, we can increse the numbers of folds and repetitions or use Random Forest method, but KNN took me some seconds to run and RF took some hours (almost 6).
